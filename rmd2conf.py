@@ -17,11 +17,10 @@ import	argparse, urllib, webbrowser
 
 # ArgumentParser to parse arguments and options
 parser = argparse.ArgumentParser()
-parser.add_argument("Rmarkdownfile", help="Full path of the Rmarkdown file to convert and upload.")
+parser.add_argument("inputFile", help="Full path of the Rmarkdown or markdown file to convert and upload.")
 # parser.add_argument('spacekey', help="Confluence Space key for the page. If omitted, will use user space.")
-# parser.add_argument('-u', '--username', help='Confluence username if $CONFLUENCE_USERNAME not set.')
-# parser.add_argument('-p', '--password', help='Confluence password if $CONFLUENCE_PASSWORD not set.')
-# parser.add_argument('-o', '--orgname', help='Confluence organisation if $CONFLUENCE_ORGNAME not set. e.g. https://XXX.atlassian.net')
+parser.add_argument('-u', '--username', help='Confluence username.')
+parser.add_argument('-p', '--password', help='Confluence password.')
 parser.add_argument('-a', '--ancestor', help='Parent page under which page will be created or moved.')
 parser.add_argument('-t', '--attachment', nargs='+', help='Attachment(s) to upload to page. Paths relative to the markdown file.')
 parser.add_argument('-c', '--contents', action='store_true', default=False, help='Use this option to generate a contents page.')
@@ -32,15 +31,12 @@ args = parser.parse_args()
 
 # Assign global variables
 try:
-	Rmarkdownfile = args.Rmarkdownfile
+	inputFile = args.inputFile
+        fileext = os.path.splitext(inputFile)[1]
 	# spacekey = args.spacekey
         spacekey = "CDT"
-	# username = os.getenv('CONFLUENCE_USERNAME', args.username)
-        username = "sthompson"
-	# password = os.getenv('CONFLUENCE_PASSWORD', args.password)
-        password = "6BqJcJxM"
-	# orgname = os.getenv('CONFLUENCE_ORGNAME', args.orgname)
-        orgname = "Genomics England"
+	username = args.username
+	password = args.password
 	ancestor = args.ancestor
 	nossl = args.nossl
 	delete = args.delete
@@ -49,21 +45,23 @@ try:
 	contents = args.contents
         wikiUrl = "https://cnfl.extge.co.uk"
 	
+        if inputFile is None:
+                print 'Error: markdown file not specified'
+
 	if username is None:
-		print 'Error: Username not specified by environment variable or option.'
+		print 'Error: Username not specified.'
 		sys.exit(1)
 		
 	if password is None:
-		print 'Error: Password not specified by environment variable or option.'
+		print 'Error: Password not specified.'
 		sys.exit(1)
 		
-	if orgname is None:
-		print 'Error: Org Name not specified by environment variable or option.'
+	if not os.path.exists(inputFile):
+		print 'Error: markdown file: %s does not exist.' % (inputFile)
 		sys.exit(1)
-	
-	if not os.path.exists(Rmarkdownfile):
-		print 'Error: Rmarkdown file: %s does not exist.' % (Rmarkdownfile)
-		sys.exit(1)
+
+        if fileext.upper() not in ['.RMD', '.MD']:
+            print 'Error: %s not recognised format' & (inputFile)
 	
 	if spacekey is None:
 		spacekey='~%s' % (username)
@@ -78,16 +76,17 @@ except Exception, err:
         sys.exit(1)
 
 #to convert Rmd file to md file
-def convertRmdToMd(Rmarkdownfile):
-        cmd = "rmarkdown::render(\'" + Rmarkdownfile + "\')"
-        try:
-            subprocess.call(["R", "-e", cmd])
-            markdownFile = os.path.splitext(Rmarkdownfile)[0] + '.md'
-            return markdownFile
-        except Exception, err:
-            print '\n Failed to convert Rmarkdown file. Exiting.'
-            sys.exit(1)
-	
+def convertRmdToMd(markdownFile):
+	print '\nConverting Rmarkdown file %s' % markdownFile
+	cmd = "rmarkdown::render(\'" + markdownFile + "\')"
+	try:
+		subprocess.call(["R", "-e", cmd])
+		processedFile = os.path.splitext(markdownFile)[0] + '.md'
+		return processedFile
+	except Exception, err:
+		print '\n Failed to convert Rmarkdown file. Exiting.'
+		sys.exit(1)
+
 # Convert html code blocks to Confluence macros
 def convertCodeBlock(html):
 	codeBlocks = re.findall('<pre><code.*?>.*?<\/code><\/pre>', html, re.DOTALL)
@@ -225,7 +224,7 @@ def getPage(title):
 
 # Scan for images and upload as attachments if found
 def addImages(pageId, html):
-	sourceFolder = os.path.dirname(os.path.abspath(Rmarkdownfile)).decode('utf-8')
+	sourceFolder = os.path.dirname(os.path.abspath(inputFile)).decode('utf-8')
 	
 	for tag in re.findall('<img(.*?)\/>', html):
 		relPath = re.search('src="(.*?)"', tag).group(1)
@@ -251,7 +250,7 @@ def addContents(html):
 
 # Add attachments for an array of files
 def addAttachments(pageId, files):
-	sourceFolder = os.path.dirname(os.path.abspath(markdownFile)).decode('utf-8')
+	sourceFolder = os.path.dirname(os.path.abspath(inputFile)).decode('utf-8')
 	
 	if files:
 		for file in files:
@@ -417,12 +416,16 @@ def main():
 	print '\n\n\t\t----------------------------------'
 	print '\t\tRmarkdown to Confluence Upload Tool'
 	print '\t\t----------------------------------\n\n'
-
-	print 'Rmarkdown file:\t%s' % Rmarkdownfile
+	print 'markdown file:\t%s' % inputFile
 	print 'Space Key:\t%s' % spacekey
-	print 'Converting Rmd to md'
-        
-        markdownFile = convertRmdToMd(Rmarkdownfile)
+	print 'Fileext %s' % fileext
+
+	if fileext.upper() == '.RMD':
+		markdownFile = convertRmdToMd(inputFile)
+		print markdownFile
+	else:
+		markdownFile = inputFile
+
 	with open(markdownFile, 'r') as f:
 		title = f.readline().strip()
 		f.seek(0)
@@ -467,9 +470,9 @@ def main():
 	
 	print '\nMarkdown Converter completed successfully.'
 
-        exp = open("genhtml.html", "w")
-        exp.write(html)
-        exp.close()
+        #exp = open("genhtml.html", "w")
+        #exp.write(html)
+        #exp.close()
 
 if __name__ == "__main__":
 	main()

@@ -1,3 +1,6 @@
+*.html
 *.md
 *.Rmd
 *.png
+*.Rhistory
+*.*~
