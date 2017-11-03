@@ -4,7 +4,7 @@ This script allows uploading of markdown or Rmarkdown files to the Genomics Engl
 
 ## Usage
 
-python rmd2conf.py <markdown or rmarkdownfile> -u <username> -p <password> ...
+`python rmd2conf.py <markdown or rmarkdownfile> -u <username> -p <password> ...`
 
 ## Arguments
 
