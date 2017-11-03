@@ -34,4 +34,4 @@ The script will determine whether the file is an Rmarkdown (.Rmd) or Markdown (.
 ## Best results
 
 * Usage of `kable(<data.frame>)` gets nicely formatted tables.
-* Plot file names come from the chunk file name
+* Plot file names come from the chunk description (and give the hover over description).
