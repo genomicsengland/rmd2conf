@@ -78,7 +78,7 @@ except Exception, err:
 #to convert Rmd file to md file
 def convertRmdToMd(markdownFile):
 	print '\nConverting Rmarkdown file %s' % markdownFile
-	cmd = "rmarkdown::render(\'" + markdownFile + "\')"
+	cmd = "rmarkdown::render(\'" + markdownFile + "\', output_format = \'md_document\')"
 	try:
 		subprocess.call(["R", "-e", cmd])
 		processedFile = os.path.splitext(markdownFile)[0] + '.md'
