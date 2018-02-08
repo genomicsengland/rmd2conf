@@ -35,3 +35,4 @@ The script will determine whether the file is an Rmarkdown (.Rmd) or Markdown (.
 
 * Usage of `kable(<data.frame>)` gets nicely formatted tables.
 * Plot file names come from the chunk description (and give the hover over description).
+* If your password has any special characters in it then the password will need to be surrounded by quotes
