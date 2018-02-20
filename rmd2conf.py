@@ -14,6 +14,7 @@ import  markdown, mimetypes, codecs
 import  re, collections
 import  requests, json
 import  argparse, urllib, webbrowser
+import  datetime
 
 # ArgumentParser to parse arguments and options
 parser = argparse.ArgumentParser()
@@ -75,15 +76,11 @@ except Exception, err:
 #to convert Rmd file to md file, first delete any previous md document that might have been generated
 def convertRmdToMd(markdownFile):
     print '\nConverting Rmarkdown file %s' % markdownFile
-    try:
-        os.remove(os.path.splitext(markdownFile)[0] + '.md')
-    except Exception:
-        pass
-    cmd = "rmarkdown::render(\'" + markdownFile + "\', output_format = \'md_document\')"
+    n = os.path.splitext(markdownFile)[0] + '{:%Y-%m-%d-%H%M%S}'.format(datetime.datetime.now()) + '.md'
+    cmd = "rmarkdown::render(\'" + markdownFile + "\', output_format = \'md_document\', output_file = \'" + n + "\')"
     try:
         subprocess.call(["R", "-e", cmd])
-        processedFile = os.path.splitext(markdownFile)[0] + '.md'
-        return processedFile
+        return n
     except Exception, err:
         print '\n Failed to convert Rmarkdown file. Exiting.'
         sys.exit(1)
