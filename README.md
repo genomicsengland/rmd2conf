@@ -27,13 +27,13 @@ It requires the following python packages be installed:
 
   sys, os, subprocess, markdown, mimetypes, codecs, re, collections, requrest, json, argparse, urllib, webbrowser
   
-It also requires R be installed and have the rmarkdown library installed with pandoc v1.12.3 or above, this is more recent than the version available in the repositories. More information on how to get the newer version can be [found here]<https://github.com/rstudio/rmarkdown/blob/master/PANDOC.md>
+It also requires R be installed and have the rmarkdown library installed with pandoc v1.12.3 or above, this is more recent than the version available in the repositories. More information on how to get the newer version can be [found here](https://github.com/rstudio/rmarkdown/blob/master/PANDOC.md).
 
 Obviously you need to have a confluence username and password and have permission to create pages in the space to which you're attempting to write.
 
 ## File format
 
-The script will determine whether the file is an Rmarkdown (.Rmd) or Markdown (.md) file based on the file extension. If converting from Rmd to md, then the output format in the Rmd header will be ignored and a markdown document will be generated with a current date and time stamp.
+The script will determine whether the file is an Rmarkdown (.Rmd) or Markdown (.md) file based on the file extension. If converting from Rmd to md, then the output format in the Rmd header will be ignored and a markdown document will be generated with a current date and time stamp (this remains after the script has run).
 
 ## Best results
 
