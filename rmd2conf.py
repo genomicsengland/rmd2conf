@@ -6,7 +6,7 @@
 # Create or Update Confluence pages remotely using markdown or Rmarkdown files.
 #
 # --------------------------------------------------------------------------------------------------------
-# Usage: rmd2conf.py markdown
+# Usage: rmd2conf.py markdown-or-rmarkdown-file -u <confluence-user-name> -p <confluence-password>
 # --------------------------------------------------------------------------------------------------------
 
 import  sys, os, shutil, subprocess
