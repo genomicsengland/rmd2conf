@@ -9,11 +9,11 @@
 # Usage: rmd2conf.py markdown
 # --------------------------------------------------------------------------------------------------------
 
-import  sys, os, subprocess
+import  sys, os, shutil, subprocess
 import  markdown, mimetypes, codecs
 import  re, collections
 import  requests, json
-import  argparse, urllib, webbrowser
+import  argparse, urllib.parse, webbrowser
 import  datetime
 
 # ArgumentParser to parse arguments and options
@@ -29,6 +29,7 @@ parser.add_argument('-c', '--contents', action='store_true', default=False, help
 parser.add_argument('-g', '--nogo', action='store_true', default=False, help='Use this option to skip navigation after upload.')
 parser.add_argument('-n', '--nossl', action='store_true', default=False, help='Use this option if NOT using SSL. Will use HTTP instead of HTTPS.')
 parser.add_argument('-d', '--delete', action='store_true', default=False, help='Use this option to delete the page instead of create it.')
+parser.add_argument('-b', '--makebackup', action='store_true', default=False, help='Use this option to keep the generated markdown from Rmd file')
 args = parser.parse_args()
 
 # Assign global variables
@@ -45,45 +46,53 @@ try:
     attachments = args.attachment
     goToPage = not args.nogo
     contents = args.contents
+    keepmd= args.makebackup
     wikiUrl = "https://cnfl.extge.co.uk"
        
     if inputFile is None:
-        print 'Error: markdown file not specified'
+        print('Error: markdown file not specified')
 
     if username is None:
-        print 'Error: Username not specified.'
+        print('Error: Username not specified.')
         sys.exit(1)
                
     if password is None:
-        print 'Error: Password not specified.'
+        print('Error: Password not specified.')
         sys.exit(1)
                
     if not os.path.exists(inputFile):
-        print 'Error: markdown file: %s does not exist.' % (inputFile)
+        print('Error: markdown file: %s does not exist.' % (inputFile))
         sys.exit(1)
 
     if fileext.upper() not in ['.RMD', '.MD']:
-        print 'Error: %s not recognised format' & (inputFile)
+        print('Error: %s not recognised format' & (inputFile))
        
     if nossl:
         wikiUrl.replace('https://','http://')
                         
-except Exception, err:
-    print '\n\nException caught:\n%s ' % (err)
-    print '\nFailed to process command line arguments. Exiting.'
+except Exception as err:
+    print('Exception caught:\n%s ' % (err))
+    print('Failed to process command line arguments. Exiting.')
     sys.exit(1)
 
 #to convert Rmd file to md file, first delete any previous md document that might have been generated
 def convertRmdToMd(markdownFile):
-    print '\nConverting Rmarkdown file %s' % markdownFile
+    print('Converting Rmarkdown file %s' % markdownFile)
     n = os.path.splitext(markdownFile)[0] + '{:%Y-%m-%d-%H%M%S}'.format(datetime.datetime.now()) + '.md'
-    cmd = "rmarkdown::render(\'" + markdownFile + "\', output_format = \'md_document\', output_file = \'" + n + "\')"
+    cmd = "rmarkdown::render(\'" + markdownFile + "\', output_format = \'md_document\', output_file = \'" + os.path.basename(n) + "\')"
     try:
-        subprocess.call(["R", "-e", cmd])
+        subprocess.check_output(["R", "-e", cmd])
         return n
-    except Exception, err:
-        print '\n Failed to convert Rmarkdown file. Exiting.'
+    except Exception as err:
+        print('Failed to convert Rmarkdown file' + err)
         sys.exit(1)
+
+#to delete converted markdown file and it's files
+def delConvertedMd(md):
+	d = os.path.splitext(md)[0] + '_files'
+	if os.path.isdir(d):
+		shutil.rmtree(d)
+	os.remove(md)
 
 # Convert html code blocks to Confluence macros
 def convertCodeBlock(html):
@@ -92,8 +101,8 @@ def convertCodeBlock(html):
         for tag in codeBlocks:
                         
             confML = '<ac:structured-macro ac:name="code">'
-            confML = confML + '<ac:parameter ac:name="theme">Midnight</ac:parameter>'
-            confML = confML + '<ac:parameter ac:name="linenumbers">true</ac:parameter>'
+            confML = confML + '<ac:parameter ac:name="theme">Default</ac:parameter>'
+            confML = confML + '<ac:parameter ac:name="linenumbers">false</ac:parameter>'
                         
             lang = re.search('code class="(.*)"', tag)
             if lang:
@@ -188,8 +197,8 @@ def processRefs(html):
 
 # Retrieve page details by title
 def getPage(title):
-    print '\tRetrieving page information: %s' % title
-    url = '%s/rest/api/content?title=%s&spaceKey=%s&expand=version,ancestors' % (wikiUrl, urllib.quote_plus(title), spacekey)
+    print('\tRetrieving page information: %s' % title)
+    url = '%s/rest/api/content?title=%s&spaceKey=%s&expand=version,ancestors' % (wikiUrl, urllib.parse.quote_plus(title), spacekey)
 
     s = requests.Session()
     s.auth = (username, password)
@@ -202,8 +211,8 @@ def getPage(title):
     except Exception as err:
         error = re.search('^404', err.message)
         if error:
-            print '\nError: Page not found. Check the following are correct:'
-            print '\tSpace Key : %s' % spacekey
+            print('\nError: Page not found. Check the following are correct:')
+            print('\tSpace Key : %s' % spacekey)
         sys.exit(1)
                 
     data = r.json()
@@ -221,7 +230,8 @@ def getPage(title):
 
 # Scan for images and upload as attachments if found
 def addImages(pageId, html):
-    sourceFolder = os.path.dirname(os.path.abspath(inputFile)).decode('utf-8')
+    #sourceFolder = os.path.dirname(os.path.abspath(inputFile)).decode('utf-8')
+    sourceFolder = os.path.dirname(os.path.abspath(inputFile))
         
     for tag in re.findall('<img(.*?)\/>', html):
         relPath = re.search('src="(.*?)"', tag).group(1)
@@ -247,7 +257,8 @@ def addContents(html):
 
 # Add attachments for an array of files
 def addAttachments(pageId, files):
-    sourceFolder = os.path.dirname(os.path.abspath(inputFile)).decode('utf-8')
+    #sourceFolder = os.path.dirname(os.path.abspath(inputFile)).decode('utf-8')
+    sourceFolder = os.path.dirname(os.path.abspath(inputFile))
         
     if files:
         for file in files:
@@ -255,7 +266,7 @@ def addAttachments(pageId, files):
         
 # Create a new page
 def createPage(title, body, ancestors):
-    print '\nCreating page...'
+    print('\nCreating page...')
         
     url = '%s/rest/api/content/' % wikiUrl
         
@@ -285,23 +296,23 @@ def createPage(title, body, ancestors):
         version = data[u'version'][u'number']
         link = '%s%s' %(wikiUrl, data[u'_links'][u'webui'])
                 
-        print '\nPage created in %s with ID: %s.' % (spaceName, pageId)
-        print 'URL: %s' % link
+        print('\nPage created in %s with ID: %s.' % (spaceName, pageId))
+        print('URL: %s' % link)
                 
         imgCheck = re.search('<img(.*?)\/>', body)
         if imgCheck or attachments:
-            print '\tAttachments found, update procedure called.'
+            print('\tAttachments found, update procedure called.')
             updatePage(pageId, title, body, version, ancestors, attachments)
         else:
             if goToPage:
                 webbrowser.open(link)
     else:
-        print '\nCould not create page.'
+        print('\nCould not create page.')
         sys.exit(1)
 
 # Delete a page
 def deletePage(pageId):
-    print '\nDeleting page...'
+    print('\nDeleting page...')
     url = '%s/rest/api/content/%s' % (wikiUrl, pageId)
         
     s = requests.Session()
@@ -312,13 +323,13 @@ def deletePage(pageId):
     r.raise_for_status()
         
     if r.status_code == 204:
-        print 'Page %s deleted successfully.' % pageId
+        print('Page %s deleted successfully.' % pageId)
     else:
-        print 'Page %s could not be deleted.' % pageId
+        print('Page %s could not be deleted.' % pageId)
 
 # Update a page
 def updatePage(pageId, title, body, version, ancestors, attachments):
-    print '\nUpdating page...'
+    print('\nUpdating page...')
         
     # Add images and attachments
     body = addImages(pageId, body)
@@ -354,12 +365,12 @@ def updatePage(pageId, title, body, version, ancestors, attachments):
         data = r.json()
         link = '%s%s' %(wikiUrl, data[u'_links'][u'webui'])
                 
-        print "\nPage updated successfully."
-        print 'URL: %s' % link
+        print('\nPage updated successfully.')
+        print('URL: %s' % link)
         if goToPage:
             webbrowser.open(link)
     else:
-        print "\nPage could not be updated."
+        print("\nPage could not be updated.")
 
 def getAttachment(pageId, filename):
     url = '%s/rest/api/content/%s/child/attachment?filename=%s' % (wikiUrl, pageId, filename)
@@ -403,27 +414,18 @@ def uploadAttachment(pageId, file, comment):
     s.auth = (username, password)
     s.headers.update({'X-Atlassian-Token' : 'no-check'})
         
-    print '\tUploading attachment %s...' % fileName
+    print('\tUploading attachment %s...' % fileName)
         
     r = s.post(url, files=fileToUpload)
     r.raise_for_status()
         
 
 def main():
-    print '\n\n\t\t----------------------------------'
-    print '\t\tRmarkdown to Confluence Upload Tool'
-    print '\t\t----------------------------------\n\n'
-    print 'markdown file:\t%s' % inputFile
-    print 'Space Key:\t%s' % spacekey
-    print 'Fileext %s' % fileext
-
-    if fileext.upper() == '.RMD':
-        markdownFile = convertRmdToMd(inputFile)
-        print markdownFile
-    else:
-        markdownFile = inputFile
-
     try:
+        if fileext.upper() == '.RMD':
+            markdownFile = convertRmdToMd(inputFile)
+        else:
+            markdownFile = inputFile
         with open(markdownFile, 'r') as f:
             if pagetitle is None:
                 title = f.readline().strip()
@@ -431,11 +433,11 @@ def main():
                 title = pagetitle
             f.seek(0)
             mdContent = f.read()
-    except Exception:
-        print 'Error opening markdown file, did Rmd conversion work?'
+    except Exception as err:
+        print('Error accessing md/rmd file:' + err)
         sys.exit(1)
                 
-    print 'Title:\t\t%s' % title
+    print('Title:\t\t%s' % title)
         
     with codecs.open(markdownFile,'r','utf-8') as f:
         html=markdown.markdown(f.read(), extensions = ['markdown.extensions.tables', 'markdown.extensions.fenced_code'])
@@ -450,7 +452,7 @@ def main():
 
     html = processRefs(html)
 
-    print '\nChecking if Atlas page exists...'
+    print('Checking if Atlas page exists...')
     page = getPage(title)
         
     if delete and page:
@@ -462,7 +464,7 @@ def main():
         if parentPage:
             ancestors = [{'type':'page','id':parentPage.id}]
         else:
-            print 'Error: Parent page does not exist: %s' % ancestor
+            print('Error: Parent page does not exist: %s' % ancestor)
             sys.exit(1)
     else:
         ancestors = []
@@ -472,11 +474,10 @@ def main():
     else:
         createPage(title, html, ancestors)
         
-    print '\nMarkdown Converter completed successfully.'
+    if not keepmd & (fileext.upper() == '.RMD'):
+        delConvertedMd(markdownFile)
 
-    #exp = open("genhtml.html", "w")
-    #exp.write(html)
-    #exp.close()
+    print('Markdown Converter completed successfully.')
 
 if __name__ == "__main__":
     main()
