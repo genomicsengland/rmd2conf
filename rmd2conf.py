@@ -474,7 +474,7 @@ def main():
     else:
         createPage(title, html, ancestors)
         
-    if not keepmd & (fileext.upper() == '.RMD'):
+    if keepmd is False and fileext.upper() == '.RMD':
         delConvertedMd(markdownFile)
 
     print('Markdown Converter completed successfully.')
