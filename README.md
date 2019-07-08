@@ -8,17 +8,17 @@ This python 3 script allows uploading of markdown or Rmarkdown files to the Geno
 
 ## Arguments
 
-  * `**-u --username**` : user's Confluence username
-  * `**-p --password**` : user's Confluence password (if this contains any special characters then this will need to be within quotes)
-  * `**-s --spacekey**` : the Confluence spacekey where the page will be uploaded, defaults to CDT (clinical data team)
-  * `**-t --pagetitle**` : optional title for the new page upload, default is the page title specified in the Rmd or md document
-  * `**-a --ancestor**` : the ancestor page's title under which the new page will be created
-  * `**-m --attachment**` : paths to any attachments to upload to the page
-  * `**-c --contents**` : generate a table of contents on the resulting page
-  * `**-g --nogo**` : don't open up the confluence page after generating (default is to open the page after creation)
-  * `**-d --delete**` : use this page to delete the page rather than create it
-  * `**-n --nossl**` : use this option to use http instead of https
-  * `**-b --makebackup**` : use this option to keep the markdown created from the Rmd and associated files (default is to delete)
+  * **`-u --username`** : user's Confluence username
+  * **`-p --password`** : user's Confluence password (if this contains any special characters then this will need to be within quotes)
+  * **`-s --spacekey`** : the Confluence spacekey where the page will be uploaded, defaults to CDT (clinical data team)
+  * **`-t --pagetitle`** : optional title for the new page upload, default is the page title specified in the Rmd or md document
+  * **`-a --ancestor`** : the ancestor page's title under which the new page will be created
+  * **`-m --attachment`** : paths to any attachments to upload to the page
+  * **`-c --contents`** : generate a table of contents on the resulting page
+  * **`-g --nogo`** : don't open up the confluence page after generating (default is to open the page after creation)
+  * **`-d --delete`** : use this page to delete the page rather than create it
+  * **`-n --nossl`** : use this option to use http instead of https
+  * **`-b --makebackup`** : use this option to keep the markdown created from the Rmd and associated files (default is to delete)
   
 The title in the (R)markdown document (or as specified in the optional argument) will determine the name of the page on the Confluence site. If a page with that title already exists in the space, then the page will be updated with the content of the markdown document, if it doesn't a new page will be created at the site's root (or under the ancestor if that is specified).
 
